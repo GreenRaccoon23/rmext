@@ -7,6 +7,7 @@
 This is a simple command-line tool to print a filename without its extension. It's meant to be used in the same way `basename`, `dirname`, and `realpath` are used on Linux.  
   
 Examples:  
+
     [chuck@norris ~]$ base="$(rmext /some/path/file.txt)";
     [chuck@norris ~]$ echo $base;
     /some/path/file
