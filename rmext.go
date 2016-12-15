@@ -12,27 +12,33 @@ import (
 )
 
 var (
-	doBasename bool
-	doFullpath bool
-	targets    []string
+	PrintBase bool
+	PrintFull bool
+	Paths     []string
 )
 
 func init() {
-	chkHelp()
+	if helpNeeded() {
+		help(1)
+	} else if helpWanted() {
+		help(0)
+	}
 	flags()
 }
 
-// Check whether user requested help.
-func chkHelp() {
-	if len(os.Args) < 2 {
-		return
+func helpNeeded() bool {
+	if noArgs := (len(os.Args) == 1); noArgs {
+		return true
 	}
+	return false
+}
 
+func helpWanted() bool {
 	switch os.Args[1] {
 	case "-h", "h", "help", "--help", "-H", "H", "HELP", "--HELP", "-help", "--h", "--H":
-		help(0)
+		return true
 	}
-
+	return false
 }
 
 // Print help and exit with a status code.
@@ -62,30 +68,22 @@ func help(status int) {
 	)
 }
 
-// Parse user arguments and modify global variables accordingly.
 func flags() {
-	// Program requires at least one user argument.
-	// Print help and exit with status 1 if none were received.
-	if len(os.Args) < 2 {
-		help(1)
-	}
-
-	// Parse commandline arguments.
-	flag.BoolVar(&doBasename, "b", false, "")
-	flag.BoolVar(&doFullpath, "f", false, "")
+	flag.BoolVar(&PrintBase, "b", false, "")
+	flag.BoolVar(&PrintFull, "f", false, "")
 	flag.Parse()
 
 	// Modify global variables based on commandline arguments.
-	targets = os.Args[1:]
-	if doBasename && doFullpath {
+	Paths = os.Args[1:]
+	if PrintBase && PrintFull {
 		help(1)
 	}
-	if !doBasename && !doFullpath {
+	if !PrintBase && !PrintFull {
 		return
 	}
 	bools := []string{"-b", "-f"}
-	targets = filter(targets, bools...)
-	if len(targets) == 0 {
+	Paths = filter(Paths, bools...)
+	if len(Paths) == 0 {
 		help(1)
 	}
 	return
@@ -121,11 +119,11 @@ func slcHas(slc []string, args ...string) bool {
 func main() {
 	defer os.Exit(0)
 	var err error
-	for _, t := range targets {
+	for _, t := range Paths {
 		switch {
-		case doBasename:
+		case PrintBase:
 			t = filepath.Base(t)
-		case doFullpath:
+		case PrintFull:
 			t, err = filepath.Abs(t)
 			chkerr(err)
 		}
