@@ -18,12 +18,18 @@ var (
 )
 
 func init() {
+
 	if helpNeeded() {
 		help(1)
 	} else if helpWanted() {
 		help(0)
 	}
+
 	flags()
+
+	if !validArgs() {
+		help(1)
+	}
 }
 
 func helpNeeded() bool {
@@ -69,24 +75,28 @@ func help(status int) {
 }
 
 func flags() {
+
+	bools := []string{"-b", "-f"}
+
 	flag.BoolVar(&PrintBase, "b", false, "")
 	flag.BoolVar(&PrintFull, "f", false, "")
 	flag.Parse()
 
-	// Modify global variables based on commandline arguments.
 	Paths = os.Args[1:]
-	if PrintBase && PrintFull {
-		help(1)
-	}
-	if !PrintBase && !PrintFull {
-		return
-	}
-	bools := []string{"-b", "-f"}
 	Paths = filter(Paths, bools...)
-	if len(Paths) == 0 {
-		help(1)
+}
+
+func validArgs() bool {
+
+	if PrintBase && PrintFull {
+		return false
 	}
-	return
+
+	if len(Paths) == 0 {
+		return false
+	}
+
+	return true
 }
 
 // Remove elements in a slice (if they exist).
