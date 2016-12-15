@@ -32,25 +32,50 @@ func init() {
 	if !validArgs() {
 		help(1)
 	}
+
+	if err := modPaths(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func main() {
+
+	defer os.Exit(0)
+
+	for _, fpath := range Paths {
+		name, _ := splitExt(fpath)
+		fmt.Println(name)
+	}
 }
 
 func helpNeeded() bool {
+
+	// fmt.Println("helpNeeded()")
+
 	if noArgs := (len(os.Args) == 1); noArgs {
 		return true
 	}
+
 	return false
 }
 
 func helpWanted() bool {
+
+	// fmt.Println("helpWanted()")
+
 	switch os.Args[1] {
 	case "-h", "h", "help", "--help", "-H", "H", "HELP", "--HELP", "-help", "--h", "--H":
 		return true
 	}
+
 	return false
 }
 
-// Print help and exit with a status code.
 func help(status int) {
+
+	// fmt.Println("help()")
+	// fmt.Printf("  status: %v\n", status)
+
 	defer os.Exit(status)
 	fmt.Printf(
 		"%s\n\n  %s\n\n  %s\n%s\n\n  %s\n%s\n%s\n%s\n%s\n\n  %s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n",
@@ -78,6 +103,8 @@ func help(status int) {
 
 func flags() {
 
+	// fmt.Println("flags()")
+
 	bools := []string{"-b", "-f"}
 
 	flag.BoolVar(&PrintBase, "b", false, "")
@@ -90,6 +117,8 @@ func flags() {
 
 func validArgs() bool {
 
+	// fmt.Println("validArgs()")
+
 	if PrintBase && PrintFull {
 		return false
 	}
@@ -101,49 +130,91 @@ func validArgs() bool {
 	return true
 }
 
-func main() {
-	defer os.Exit(0)
-	var err error
-	for _, t := range Paths {
-		switch {
-		case PrintBase:
-			t = filepath.Base(t)
-		case PrintFull:
-			t, err = filepath.Abs(t)
-			chkerr(err)
+func modPaths() error {
+
+	// fmt.Println("modPaths()")
+
+	if PrintBase {
+		Paths = basepaths(Paths)
+		return nil
+	} else if PrintFull {
+		var err error
+		Paths, err = abspaths(Paths)
+		return err
+	} else {
+		return nil
+	}
+}
+
+func basepaths(paths []string) []string {
+
+	// fmt.Println("basepaths()")
+	// fmt.Printf("  paths: %v\n", paths)
+
+	var based []string
+
+	for _, fpath := range paths {
+		basename := filepath.Base(fpath)
+		based = append(based, basename)
+	}
+
+	return based
+}
+
+func abspaths(paths []string) ([]string, error) {
+
+	// fmt.Println("abspaths()")
+	// fmt.Printf("  paths: %v\n", paths)
+
+	var absed []string
+
+	for _, fpath := range paths {
+
+		abs, err := filepath.Abs(fpath)
+		if err != nil {
+			return nil, err
 		}
-		base, _ := splitExt(t)
-		fmt.Println(base)
+
+		absed = append(absed, abs)
 	}
+
+	return absed, nil
 }
 
-// Exit with status 1 if an error occurs.
-func chkerr(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
-}
+func splitExt(filename string) (name, ext string) {
 
-// Split the extension off a filename.
-// Return the basename and the extension.
-func splitExt(filename string) (base, ext string) {
-	base = filepath.Clean(filename)
+	// fmt.Println("splitExt()")
+	// fmt.Printf("  filename: %v\n", filename)
+
+	name = filepath.Clean(filename)
+
 	for {
-		testext := filepath.Ext(base)
-		if testext == "" || mime.TypeByExtension(testext) == "" {
+
+		extTest := filepath.Ext(name)
+		mimeType := mime.TypeByExtension(extTest)
+
+		// base case
+		if noMoreExts := (extTest == "" || mimeType == ""); noMoreExts {
 			return
 		}
-		ext = concat(testext, ext)
-		base = strings.TrimSuffix(base, testext)
+
+		// recursive case
+		ext = concat(extTest, ext)               // ".tar" + ".xz"
+		name = strings.TrimSuffix(name, extTest) // "file.tar" > "file"
 	}
 }
 
-// Concatenate strings.
 func concat(slc ...string) string {
+
+	// fmt.Println("concat()")
+	// fmt.Printf("  slc: %v\n", slc)
+
 	b := bytes.NewBuffer(nil)
 	defer b.Reset()
+
 	for _, s := range slc {
 		b.WriteString(s)
 	}
+
 	return b.String()
 }
